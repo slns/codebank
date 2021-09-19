@@ -14,4 +14,4 @@
 > go get -u nome_do_pacote
 
 
-docker inspect 5912ceda5a23 -f "{{json .NetworkSettings.Networks }}"
+docker inspect nome_do_container -f "{{json .NetworkSettings.Networks }}"

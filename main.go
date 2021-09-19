@@ -4,12 +4,21 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/slns/codebanck/domain"
 	"github.com/slns/codebanck/infrastructure/repository"
 	// "github.com/slns/codebanck/usecase"
 )
+
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("error loading .env file")
+	}
+}
 
 func main() {
 	db := setupDb()
@@ -26,7 +35,7 @@ func main() {
 	cc.Balance = 0
 
 	repo := repository.NewTransactionRepositoryDb(db)
-	err :=repo.CreateCreditCard(*cc)
+	err := repo.CreateCreditCard(*cc)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -41,12 +50,16 @@ func main() {
 
 func setupDb() *sql.DB {
 	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		// "172.23.0.1",
-		"db",
-		"5432",
-		"postgres",
-		"root",
-		"codebank",
+		// "db",// "172.23.0.1",
+		// "5432",
+		// "postgres",
+		// "root",
+		// "codebank",
+		os.Getenv("host"),
+		os.Getenv("port"),
+		os.Getenv("user"),
+		os.Getenv("password"),
+		os.Getenv("dbname"),
 	)
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
