@@ -8,9 +8,10 @@ import (
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	"github.com/slns/codebanck/domain"
+	"github.com/slns/codebanck/infrastructure/grpc/server"
+	"github.com/slns/codebanck/infrastructure/kafka"
 	"github.com/slns/codebanck/infrastructure/repository"
-	// "github.com/slns/codebanck/usecase"
+	"github.com/slns/codebanck/usecase"
 )
 
 func init() {
@@ -24,29 +25,38 @@ func main() {
 	db := setupDb()
 
 	defer db.Close()
+	producer := setupKafkaProducer()
+	processTransactionUseCase := setupTransactionUseCase(db, producer)
+	serveGrpc(processTransactionUseCase)
 
-	cc := domain.NewCreditCard()
-	cc.Number = "1234"
-	cc.Name = "Sergio"
-	cc.ExpirationYear = 2021
-	cc.ExpirationMonth = 7
-	cc.CVV = 123
-	cc.Limit = 1000
-	cc.Balance = 0
+// 	cc := domain.NewCreditCard()
+// cc.Number = "1234"
+// cc.Name = "Sergio"
+// cc.ExpirationYear = 2021
+// cc.ExpirationMonth = 7
+// cc.CVV = 123
+// cc.Limit = 1000
+// cc.Balance = 0
 
-	repo := repository.NewTransactionRepositoryDb(db)
-	err := repo.CreateCreditCard(*cc)
-	if err != nil {
-		fmt.Println(err)
-	}
+// repo := repository.NewTransactionRepositoryDb(db)
+// err := repo.CreateCreditCard(*cc)
+// if err != nil {
+// 	fmt.Println(err)
+// }
 }
 
-// func setupTransactionUseCase(db *sql.DB) usecase.UseCaseTransaction {
-// 	transactionRepository := repository.NewTransactionRepositoryDb(db)
-// 	useCase := usecase.NewUseCaseTransaction(transactionRepository)
-// //	useCase.KafkaProducer = producer
-// 	return useCase
-// }
+func setupTransactionUseCase(db *sql.DB, producer kafka.KafkaProducer) usecase.UseCaseTransaction {
+	transactionRepository := repository.NewTransactionRepositoryDb(db)
+	useCase := usecase.NewUseCaseTransaction(transactionRepository)
+	useCase.KafkaProducer = producer
+	return useCase
+}
+
+func setupKafkaProducer() kafka.KafkaProducer {
+	producer := kafka.NewKafkaProducer()
+	producer.SetupProducer(os.Getenv("KafkaBootstrapServers"))
+	return producer
+}
 
 func setupDb() *sql.DB {
 	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
@@ -67,3 +77,26 @@ func setupDb() *sql.DB {
 	}
 	return db
 }
+
+func serveGrpc(processTransactionUseCase usecase.UseCaseTransaction) {
+	grpcServer := server.NewGRPCServer()
+	grpcServer.ProcessTransactionUseCase = processTransactionUseCase
+	fmt.Println("Rodando gRPC Server")
+	grpcServer.Serve()
+}
+
+
+// cc := domain.NewCreditCard()
+// cc.Number = "1234"
+// cc.Name = "Sergio"
+// cc.ExpirationYear = 2021
+// cc.ExpirationMonth = 7
+// cc.CVV = 123
+// cc.Limit = 1000
+// cc.Balance = 0
+
+// repo := repository.NewTransactionRepositoryDb(db)
+// err := repo.CreateCreditCard(*cc)
+// if err != nil {
+// 	fmt.Println(err)
+// }

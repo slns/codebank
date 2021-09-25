@@ -1,16 +1,18 @@
 package usecase
 
 import (
+	"encoding/json"
+	"os"
 	"time"
 
 	"github.com/slns/codebanck/domain"
 	"github.com/slns/codebanck/dto"
-	//"github.com/slns/codebank/infrastructure/kafka"
+	"github.com/slns/codebanck/infrastructure/kafka"
 )
 
 type UseCaseTransaction struct {
 	TransactionRepository domain.TransactionRepository
-	//	KafkaProducer         kafka.KafkaProducer
+	KafkaProducer         kafka.KafkaProducer
 }
 
 func NewUseCaseTransaction(transactionRepository domain.TransactionRepository) UseCaseTransaction {
@@ -37,17 +39,17 @@ func (u UseCaseTransaction) ProcessTransaction(transactionDto dto.Transaction) (
 		return domain.Transaction{}, err
 	}
 
-	//  transactionDto.ID = t.ID
-	//  transactionDto.CreatedAt = t.CreatedAt
-	//  transactionDto.Status = t.Status
-	//  transactionJson, err := json.Marshal(transactionDto)
-	//  if err != nil {
-	//  	return domain.Transaction{}, err
-	//  }
-	// err = u.KafkaProducer.Publish(string(transactionJson), os.Getenv("KafkaTransactionsTopic"))
-	// if err != nil {
-	// 	return domain.Transaction{}, err
-	// }
+	 transactionDto.ID = t.ID
+	 transactionDto.CreatedAt = t.CreatedAt
+	 transactionDto.Status = t.Status
+	 transactionJson, err := json.Marshal(transactionDto)
+	 if err != nil {
+	 	return domain.Transaction{}, err
+	 }
+	err = u.KafkaProducer.Publish(string(transactionJson), os.Getenv("KafkaTransactionsTopic"))
+	if err != nil {
+		return domain.Transaction{}, err
+	}
 	return *t, nil
 }
 
